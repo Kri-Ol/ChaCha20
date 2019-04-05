@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+
+# default CMake build place
+build/
