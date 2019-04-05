@@ -125,7 +125,7 @@ uint64_t scramble(const uint64_t groupId,
 
     uint64_t input = 0x0000000000000000; // Just get the block out. Chacha will make random block and XOR it with input text.
                                          // XOR with zeroes preserve Chacha block.
-                                         // Or 0xFFFFFFFFFFFFFFFF to get it iverted
+                                         // Or 0xFFFFFFFFFFFFFFFF to get it inverted
     uint64_t output;
     crypto_chacha20_encrypt(&ctx,
                             reinterpret_cast<uint8_t*>(&output),

@@ -3,14 +3,14 @@
 #include "chacha20.hpp"
 
 
-#define FOR(i, start, end)   for (size_t (i) = (start); (i) < (end); (i)++)
+#define FOR(i, start, end)   for (size_t (i) = (start); (i) < (end); ++(i))
 #define WIPE_CTX(ctx)        crypto_wipe(ctx   , sizeof(*(ctx)))
 #define WIPE_BUFFER(buffer)  crypto_wipe(buffer, sizeof(buffer))
 #define ALIGN(x, block_size) ((~(x) + 1) & ((block_size) - 1))
 
 
-void crypto_wipe(      void*  secret,
-                 const size_t size   )
+static void crypto_wipe(      void*  secret,
+                        const size_t size   )
 {
     volatile uint8_t* v_secret = (uint8_t*)secret;
     FOR (i, 0, size) {
