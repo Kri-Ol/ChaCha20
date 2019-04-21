@@ -6,11 +6,11 @@
 extern "C" {
 #endif
 
-typedef struct {
+struct crypto_chacha_ctx {
     uint32_t input[16]; // current input, unencrypted
     uint32_t pool [16]; // last input, encrypted
     size_t   pool_idx;  // pointer to random_pool
-} crypto_chacha_ctx;
+};
 
 void crypto_chacha20_H(      uint8_t out[32],
                        const uint8_t key[32],
