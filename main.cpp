@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <memory>
 #include <iostream>
+#include <iomanip>
 
 #include <cstdint>
 #include <cstring>
@@ -133,6 +134,35 @@ uint64_t scramble(const uint64_t groupId,
     return output;
 }
 
+static constexpr int SCRSIZE = 12;
+
+void scramble(const uint64_t groupId,
+              const uint64_t recordId,
+                    uint8_t  output[SCRSIZE],
+              const char*    text_key = nullptr)
+{
+    uint8_t key[32] = {0x1c, 0x92, 0x40, 0xa5, 0xeb, 0x55, 0xd3, 0x8a,
+                       0xf3, 0x33, 0x88, 0x86, 0x04, 0xf6, 0xb5, 0xf0,
+                       0x47, 0x39, 0x17, 0xc1, 0x40, 0x2b, 0x80, 0x09,
+                       0x9d, 0xca, 0x5c, 0xbc, 0x20, 0x70, 0x75, 0xc0}; // same key as in example 3 below
+    if (text_key != nullptr) {
+        hex2byte(text_key, key);
+    }
+
+    const uint8_t* nonce = reinterpret_cast<const uint8_t*>(&groupId); // nonce would be our group id
+    crypto_chacha_ctx ctx;
+    crypto_chacha20_init(&ctx, key, nonce); // initialize ChaCha20
+
+    crypto_chacha20_set_ctr(&ctx, recordId); // block counter is our record Id
+
+    const uint8_t input[SCRSIZE] = {}; // Just get the block out. Chacha will make random block and XOR it with input text.
+                                       // XOR with zeroes preserve Chacha block.
+    crypto_chacha20_encrypt(&ctx,
+                            output,
+                            input,
+                            sizeof(input));
+}
+
 
 int main()
 {
@@ -159,6 +189,33 @@ int main()
     std::cout << "0x" << std::hex << scrambled << NL;
     scrambled = scramble(1, 0);
     std::cout << "0x" << std::hex << scrambled << NL;
+
+    std::cout << "-----------LONG SCAMBLE--------------------" << NL;
+    uint8_t output[SCRSIZE] = {};
+
+    scramble(10, 12345, output);
+    std::cout << "0x";
+    for(int k = SCRSIZE; k != 0; --k)
+        std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)output[k-1];
+    std::cout << NL;
+
+    scramble(100, 12345, output);
+    std::cout << "0x";
+    for(int k = SCRSIZE; k != 0; --k)
+        std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)output[k-1];
+    std::cout << NL;
+
+    scramble(11, 12345, output);
+    std::cout << "0x";
+    for(int k = SCRSIZE; k != 0; --k)
+        std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)output[k-1];
+    std::cout << NL;
+
+    scramble(10, 12346, output);
+    std::cout << "0x";
+    for(int k = SCRSIZE; k != 0; --k)
+        std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)output[k-1];
+    std::cout << NL;
 
     return 0;
 }
