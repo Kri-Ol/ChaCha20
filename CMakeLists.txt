@@ -5,6 +5,11 @@ project(chacha20 CXX)
 include(CTest)
 enable_testing()
 
+#find_package(Boost 1.70.0 REQUIRED COMPONENTS optional)
+#if(Boost_FOUND)
+#  include_directories(${Boost_INCLUDE_DIRS})
+#endif()
+
 add_executable(chacha20 main.cpp chacha20.cpp)
 target_compile_features(chacha20 PUBLIC cxx_std_17)
 
