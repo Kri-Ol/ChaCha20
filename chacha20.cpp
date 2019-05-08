@@ -9,12 +9,12 @@
 #define ALIGN(x, block_size) ((~(x) + 1) & ((block_size) - 1))
 
 
-static void crypto_wipe(      void*  secret,
-                        const size_t size   )
+static inline void crypto_wipe(      void*  secret,
+                               const size_t size   )
 {
     volatile uint8_t* v_secret = (uint8_t*)secret;
     FOR (i, 0, size) {
-        v_secret[i] = 0;
+        v_secret[i] = 0u;
     }
 }
 
