@@ -2,20 +2,23 @@
 
 #include "chacha20.hpp"
 
-
-#define FOR(i, start, end)   for (size_t (i) = (start); (i) < (end); ++(i))
 #define WIPE_CTX(ctx)        crypto_wipe(ctx   , sizeof(*(ctx)))
 #define WIPE_BUFFER(buffer)  crypto_wipe(buffer, sizeof(buffer))
-#define ALIGN(x, block_size) ((~(x) + 1) & ((block_size) - 1))
-
 
 static inline void crypto_wipe(      void*  secret,
                                const size_t size   )
 {
+    if (secret == nullptr)
+        return;
     volatile uint8_t* v_secret = (uint8_t*)secret;
-    FOR (i, 0, size) {
+
+    for(size_t i = 0ULL; i != size; ++i)
         v_secret[i] = 0u;
-    }
+}
+
+
+static inline size_t ALIGN(size_t idx, size_t block_size) {
+    return (~idx + 1ULL) & (block_size - 1ULL);
 }
 
 
@@ -61,7 +64,7 @@ static void chacha20_rounds(      uint32_t out[16],
     uint32_t t8  = in[ 8];  uint32_t t9  = in[ 9];  uint32_t t10 = in[10];  uint32_t t11 = in[11];
     uint32_t t12 = in[12];  uint32_t t13 = in[13];  uint32_t t14 = in[14];  uint32_t t15 = in[15];
 
-    FOR (i, 0, 10) { // 20 rounds, 2 rounds per loop.
+    for (int i = 0; i != 10; ++i) { // 20 rounds, 2 rounds per loop.
         QUARTERROUND(t0, t4, t8 , t12); // column 0
         QUARTERROUND(t1, t5, t9 , t13); // column 1
         QUARTERROUND(t2, t6, t10, t14); // column 2
@@ -86,8 +89,9 @@ static void chacha20_init_key(      crypto_chacha_ctx* ctx,
     ctx->input[1] = load32_le((uint8_t*)"nd 3");
     ctx->input[2] = load32_le((uint8_t*)"2-by");
     ctx->input[3] = load32_le((uint8_t*)"te k");
+
     // key
-    FOR (i, 0, 8) {
+    for(int i = 0; i != 8; ++i) {
         ctx->input[i+4] = load32_le(key + i*4);
     }
 }
@@ -106,35 +110,14 @@ static uint8_t chacha20_pool_byte(crypto_chacha_ctx* ctx)
 static void chacha20_refill_pool(crypto_chacha_ctx* ctx)
 {
     chacha20_rounds(ctx->pool, ctx->input);
-    FOR (j, 0, 16) {
-        ctx->pool[j] += ctx->input[j];
+    for(int i = 0; i != 16; ++i) {
+        ctx->pool[i] += ctx->input[i];
     }
     ctx->pool_idx = 0;
-    ctx->input[12]++;
+    ++ctx->input[12];
     if (ctx->input[12] == 0) {
-        ctx->input[13]++;
+        ++ctx->input[13];
     }
-}
-
-
-void crypto_chacha20_H(      uint8_t out[32],
-                       const uint8_t key[32],
-                       const uint8_t in[16])
-{
-    crypto_chacha_ctx ctx;
-    chacha20_init_key(&ctx, key);
-    FOR (i, 0, 4) {
-        ctx.input[i+12] = load32_le(in + i*4);
-    }
-    uint32_t buffer[16];
-    chacha20_rounds(buffer, ctx.input);
-    // prevents reversal of the rounds by revealing only half of the buffer.
-    FOR (i, 0, 4) {
-        store32_le(out      + i*4, buffer[i     ]); // constant
-        store32_le(out + 16 + i*4, buffer[i + 12]); // counter and nonce
-    }
-    WIPE_CTX(&ctx);
-    WIPE_BUFFER(buffer);
 }
 
 
@@ -142,7 +125,7 @@ static void chacha20_encrypt(      crypto_chacha_ctx* ctx,
                                    uint8_t*           cipher_text,
                              const uint8_t*           plain_text,
                              const size_t             text_size) {
-    FOR (i, 0, text_size) {
+    for(size_t i = 0ULL; i != text_size; ++i) {
         if (ctx->pool_idx == 64) {
             chacha20_refill_pool(ctx);
         }
@@ -168,17 +151,6 @@ void crypto_chacha20_init(      crypto_chacha_ctx* ctx,
 }
 
 
-void crypto_chacha20_x_init(      crypto_chacha_ctx* ctx,
-                            const uint8_t            key[32],
-                            const uint8_t            nonce[24])
-{
-    uint8_t derived_key[32];
-    crypto_chacha20_H(derived_key, key, nonce);
-    crypto_chacha20_init(ctx, derived_key, nonce + 16);
-    WIPE_BUFFER(derived_key);
-}
-
-
 void crypto_chacha20_set_ctr(      crypto_chacha_ctx* ctx,
                              const uint64_t           ctr)
 {
@@ -196,7 +168,7 @@ void crypto_chacha20_encrypt(      crypto_chacha_ctx* ctx,
     // Align ourselves with block boundaries
     size_t text_size = text_size_;
 
-    size_t align = std::min(ALIGN(ctx->pool_idx, 64), text_size);
+    size_t align = std::min(ALIGN(ctx->pool_idx, 64ULL), text_size);
     chacha20_encrypt(ctx, cipher_text, plain_text, align);
     if (plain_text != 0) {
         plain_text += align;
@@ -205,17 +177,17 @@ void crypto_chacha20_encrypt(      crypto_chacha_ctx* ctx,
     text_size   -= align;
 
     // Process the message block by block
-    FOR (i, 0, text_size >> 6) {  // number of blocks
+    for(size_t i = 0ULL; i != (text_size >> 6); ++i) {  // number of blocks
         chacha20_refill_pool(ctx);
         if (plain_text != 0) {
-            FOR (j, 0, 16) {
+            for(int j = 0; j != 16; ++j) {
                 uint32_t plain = load32_le(plain_text);
                 store32_le(cipher_text, ctx->pool[j] ^ plain);
                 plain_text  += 4;
                 cipher_text += 4;
             }
         } else {
-            FOR (j, 0, 16) {
+            for(int j = 0; j != 16; ++j) {
                 store32_le(cipher_text, ctx->pool[j]);
                 cipher_text += 4;
             }
@@ -233,5 +205,5 @@ void crypto_chacha20_stream(      crypto_chacha_ctx* ctx,
                                   uint8_t*           stream,
                             const size_t             size)
 {
-    crypto_chacha20_encrypt(ctx, stream, 0, size);
+    crypto_chacha20_encrypt(ctx, stream, nullptr, size);
 }

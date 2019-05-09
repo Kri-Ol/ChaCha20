@@ -9,7 +9,9 @@ add_executable(chacha20 main.cpp chacha20.cpp)
 target_compile_features(chacha20 PUBLIC cxx_std_17)
 
 set( BOOST_VERSION 1.70.0 )
-find_package(Boost ${BOOST_VERSION} EXACT REQUIRED COMPONENTS filesystem)
+#find_package(Boost ${BOOST_VERSION} EXACT REQUIRED COMPONENTS filesystem)
+set( Boost_FOUND False )
+
 if(Boost_FOUND)
 
     set_target_properties( Boost::boost

@@ -12,17 +12,9 @@ struct crypto_chacha_ctx {
     size_t   pool_idx;  // pointer to random_pool
 };
 
-void crypto_chacha20_H(      uint8_t out[32],
-                       const uint8_t key[32],
-                       const uint8_t in [16]);
-
 void crypto_chacha20_init(      crypto_chacha_ctx* ctx,
                           const uint8_t            key[32],
                           const uint8_t            nonce[8]);
-
-void crypto_chacha20_x_init(      crypto_chacha_ctx* ctx,
-                            const uint8_t            key[32],
-                            const uint8_t            nonce[24]);
 
 void crypto_chacha20_set_ctr(      crypto_chacha_ctx* ctx,
                              const uint64_t           ctr);
